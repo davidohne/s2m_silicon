@@ -2,6 +2,6 @@
 
 20221027
 
-Running scene2model on Apple Silcion CPUs.
+Running s2m on Apple Silcion CPUs.
 
 Till now database and users are created but scene2model can't access 
