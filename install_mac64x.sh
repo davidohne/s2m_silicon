@@ -1,5 +1,7 @@
 #!/bin/bash
-
+# 
+# Changes to database to be able to run on Apple Silicon
+#
 # Possible Arguments:
 # --nocolor will not use any colors when printing text, in case certain
 #     combinations aren't readable to the user.
