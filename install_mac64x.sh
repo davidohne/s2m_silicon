@@ -711,10 +711,12 @@ function configuration_screen {
 	fi
 	if [ ! ${hascontainer} -eq 0 ] || [ ${forceop} -eq 0 ]
 	then
-		# pull the image
-		sudo docker pull mcr.microsoft.com/mssql/server:2017-latest
-		# start a new container
-		sudo docker run -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=12+*ADOxx*+34' -p 1433:1433 --name ${dbinstancename} --restart always -d mcr.microsoft.com/mssql/server:2017-latest
+		# Create db_net network to communicate between db_container and mssql_container
+		sudo docker network create -d bridge db_net
+		# pull azure image
+		sudo docker pull mcr.microsoft.com/azure-sql-edge:latest
+		# start a new container. hostname added for communication
+		sudo docker run --network=db_net --cap-add SYS_PTRACE -p 1433:1433 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=12+*ADOxx*+34' -e 'MSSQL_SA_PASSWORD=12+*ADOxx*+34' --hostname ${dbinstancename} --name ${dbinstancename} --restart always -d mcr.microsoft.com/azure-sql-edge:latest
 	elif [ ${hascontainer} -eq 0 ]
 	then
 		echo "Container already exists."
@@ -808,15 +810,18 @@ function installation_screen {
 	fi
 	if [ ! ${ignorechecks} -eq 0 ] || [ ${forceop} -eq 0 ]
 	then
+		# Get mssql-tools for sqlcmd
+		sudo docker pull mcr.microsoft.com/mssql-tools:latest
+		sudo docker run --name mssql_tools --network db_net -it -d mcr.microsoft.com/mssql-tools
 		# create a tmp folder for the installation of sql scripts
-		sudo docker exec -it ${dbinstancename} mkdir -p /tmp/adoxx_install
+		sudo docker exec -it mssql_tools mkdir -p /tmp/adoxx_install
 		# create ADONIS user for db
-		sudo docker cp support64/createUser.sql ${dbinstancename}:/tmp/adoxx_install
-		sudo docker exec -it ${dbinstancename} /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P '12+*ADOxx*+34' -i /tmp/adoxx_install/createUser.sql
-		# create a folder for the db files
-		sudo docker exec -it ${dbinstancename} mkdir -p /opt/mssql/adoxx_data
-		sudo docker cp support64/createDB.sql ${dbinstancename}:/tmp/adoxx_install
-		sudo docker exec -it ${dbinstancename} /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P '12+*ADOxx*+34' -i /tmp/adoxx_install/createDB.sql
+		sudo docker cp support64/createUser.sql mssql_tools:/tmp/adoxx_install
+		sudo docker exec -it mssql_tools /opt/mssql-tools/bin/sqlcmd -S ${dbinstancename} -U SA -P '12+*ADOxx*+34' -i /tmp/adoxx_install/createUser.sql
+		# create a folder for the db files --> DR: has to be in the db container NOT mssql folder?!
+		sudo docker exec -it mssql_tools mkdir -p /opt/mssql/adoxx_data
+		sudo docker cp support64/createDB.sql mssql_tools:/tmp/adoxx_install
+		sudo docker exec -it mssql_tools /opt/mssql-tools/bin/sqlcmd -S ${dbinstancename} -U SA -P '12+*ADOxx*+34' -i /tmp/adoxx_install/createDB.sql
 		echo "Database initialization is complete."
 	fi
 	echo "--------------------------------------------------------------------------------"
