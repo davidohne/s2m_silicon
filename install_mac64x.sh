@@ -843,9 +843,8 @@ function installation_screen {
 		cp -r "support64/${shortcutfile}" "/Applications/"
 		sudo xattr -r -d com.apple.quarantine "/Applications/${shortcutfile}"
 		# disable the forced password change
-		sudo docker cp support64/postprocess.sql ${dbinstancename}:/tmp/adoxx_install
-		sudo docker exec -it ${dbinstancename} /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P '12+*ADOxx*+34' -i /tmp/adoxx_install/postprocess.sql
-		echo "Finished ADOxx configuration."
+		sudo docker cp support64/postprocess.sql mssql_tools:/tmp/adoxx_install
+		sudo docker exec -it mssql_tools /opt/mssql-tools/bin/sqlcmd -S ${dbinstancename} -U SA -P '12+*ADOxx*+34' -i /tmp/adoxx_install/postprocess.sql
 	fi
 	echo "--------------------------------------------------------------------------------"
 	echo ""
